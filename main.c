@@ -334,13 +334,14 @@ int main(int argc, char *argv[])
 	}
 	else if ( !strnicmp(argv[1], "-y", 2) && (argc>=3) )
 	{
+		// TODO cleanup everything
 
 		// Prepare the file manipulation variables
 		const int delay_before_delete = 10;
 		char fullpath[256];
 		char delete_url[256];
 		char path[] = "/tmp";
-		char create_path[] = "config.cgi?mkdir=tmp";
+		char create_path[] = "/config.cgi?mkdir=/tmp";
 		char * filename = argv[3];
 		char * ip = argv[2];
 		int p = pathPos(filename, strlen(filename));	// strip any PC path from filename
@@ -349,6 +350,9 @@ int main(int argc, char *argv[])
 
 		// ask the creation of /tmp to ensure it exists
 		SOCKET sd = httpConnect(ip);
+		if (sd<0) {
+			printf("ERROR while creating socker\r\n");
+		}
 		if ( httpGet(sd, ip, create_path, 0) == 0)
 			printf("/tmp created successfully.\r\n");
 		else
@@ -358,10 +362,15 @@ int main(int argc, char *argv[])
 		run(ip, fullpath);              // Execute the file on CPC
 
 		// delete the uploaded file
-		sprintf(delete_url, "config.cgi?rm=%s", fullpath);
+		sprintf(delete_url, "/config.cgi?rm=%s", fullpath);
 		printf("Delete it in %d seconds %s.\r\n", delay_before_delete, delete_url);
-		sleep(delay_before_delete);
-		if ( httpGet(sd, ip, create_path, 0) == 0)
+
+		for(int i=0; i <delay_before_delete; ++i) {
+			printf("."); fflush(stdout);
+			sleep(1);
+		}
+			printf("\r\n");
+		if ( httpGet(sd, ip, delete_url, 0) == 0)
 			printf("Uploaded file deleted successfully.\r\n");
 		else
 			printf("Unable to delete file.\r\n");
