@@ -19,10 +19,12 @@
 
 void dispInfo(char *exename)
 {
+	// maybe options need to be changed
 	printf("CPC M4 xfer tool v2.0.0 - Duke 2016/2017\r\n");
 	printf("%s -u ipaddr file path opt\t\t- Upload file, opt 0: no header add, 1: add ascii header\r\n", exename);
 	printf("%s -d ipaddr file path opt\t\t- Download file, opt 0: leave header, 1: remove header\r\n", exename);
-	printf("%s -z ipaddr file path \t\t- Remove file\r\n", exename);
+	printf("%s -z ipaddr path \t\t- Remove file\r\n", exename);
+	printf("%s -m ipaddr path \t\t- Vreate directory\r\n", exename);
 	printf("%s -f ipaddr file slot name\t\t- Upload rom\r\n", exename);
 	printf("%s -x ipaddr path+file\t\t- Execute file on CPC\r\n", exename);
 	printf("%s -y ipaddr local_file\t\t- Upload file on CPC and execute it immediatly (the sd card must contain folder '/tmp')\r\n", exename);
@@ -283,11 +285,49 @@ void delete(char * path, char *ip)
 		if ( httpGet(sd, ip, fullpath, opt) == 0)
 			printf("Delete succesfully.\r\n");
 		else
-			printf("Delete failed.\r\n");
+			printf("Delete failed.\r\n");// XXX the error message is displayed when everything is ok ...
 	}
 	else
 		printf("Connect failed, wrong ip?\r\n");
 }
+
+
+
+void mkdir(char * path, char *ip)
+{
+	// TODO refactor wode with delete
+	SOCKET sd;
+	int ret, k, i, j;
+	char fullpath[256];
+	sprintf(fullpath, "config.cgi?mkdir=%s", path);
+	int opt = 0;
+
+	// remove duplicate /'s
+	
+	k = strlen(fullpath);
+	j = 0;
+	for (i=0; i < (k+1); i++)
+	{
+		if ( (fullpath[i] == '/') && (fullpath[i+1] == '/') )
+			i++;
+		
+		fullpath[j++] = fullpath[i];
+	}
+	ret = httpConnect(ip);
+	
+	sd = ret;
+	if ( ret >= 0 )
+	{	
+		if ( httpGet(sd, ip, fullpath, opt) == 0)
+			printf("Mkdir succesfully.\r\n");
+		else
+			printf("Mkdir failed.\r\n"); // XXX the error message is displayed when everything is ok ...
+	}
+	else
+		printf("Connect failed, wrong ip?\r\n");
+}
+
+
 
 void download(char *filename, char *path, char *ip, int opt)
 {
@@ -382,23 +422,12 @@ int main(int argc, char *argv[])
 		int p = pathPos(filename, strlen(filename));	// strip any PC path from filename
 		sprintf(fullpath, "%s/%s", path, &filename[p]);
 
-
-		// ask the creation of /tmp to ensure it exists
-		SOCKET sd = httpConnect(ip);
-		if (sd<0) {
-			printf("ERROR while creating socker\r\n");
-		}
-		if ( httpGet(sd, ip, create_path, 0) == 0)
-			printf("/tmp created successfully.\r\n");
-		else
-			printf("Unable to create /tmp (it probably exists).\r\n");
+		mkdir(path, ip);
 		
 		upload(filename, path, ip, 0);  // Upload the file on CPC
 		run(ip, fullpath);              // Execute the file on CPC
 
-		// delete the uploaded file
-		sprintf(delete_url, "/config.cgi?rm=%s", fullpath);
-		printf("Delete it in %d seconds %s.\r\n", delay_before_delete, delete_url);
+		printf("Delete it in %d seconds.\r\n", delay_before_delete);
 
 		for(int i=0; i <delay_before_delete; ++i) {
 			printf("."); fflush(stdout);
@@ -406,7 +435,11 @@ int main(int argc, char *argv[])
 		}
 		printf("\r\n");
 
+		// TODO add an option to never delete (or always)
+		// TODO delete the fil if did not existed before
 		delete(fullpath, ip);
+		// TODO delete /tmp if create now
+		delete(path, ip);
 	}
 	else if ( !strnicmp(argv[1], "-d", 2) && (argc>=4) )	// download
 	{	
@@ -419,6 +452,11 @@ int main(int argc, char *argv[])
 	{	
 
 		delete(argv[3],  argv[2]);
+	}
+	else if ( !strnicmp(argv[1], "-m", 2) && (argc>=3) )	// download
+	{	
+
+		mkdir(argv[3],  argv[2]);
 	}
 	else
 	{	
