@@ -4,12 +4,14 @@
 	Duke 2016/2017
 
 */
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include "http.h"
 #include "parse.h"
 #include "cpc.h"
+
 // mres = m4 reboot
 // cres = cpc reset
 // chlt = cpc pause/unpause (BUSRQ)
@@ -200,6 +202,7 @@ void upload(char *filename, char *path, char *ip, int opt)
 	free(buf);
 }
 
+
 void uploadRom(char *filename, char *ip, int slot, char *slotname)
 {
 	int ret, size, p, n, k, i, j;
@@ -331,17 +334,37 @@ int main(int argc, char *argv[])
 	}
 	else if ( !strnicmp(argv[1], "-y", 2) && (argc>=3) )
 	{
-        // Prepare the file manipulation variables
-        char fullpath[256];
-		char path[] = "/tmp"; // TODO Find a way to use /tmp or something like that
+
+		// Prepare the file manipulation variables
+		const int delay_before_delete = 10;
+		char fullpath[256];
+		char delete_url[256];
+		char path[] = "/tmp";
+		char create_path[] = "config.cgi?mkdir=tmp";
 		char * filename = argv[3];
 		char * ip = argv[2];
 		int p = pathPos(filename, strlen(filename));	// strip any PC path from filename
 		sprintf(fullpath, "%s/%s", path, &filename[p]);
-                
+
+
+		// ask the creation of /tmp to ensure it exists
+		SOCKET sd = httpConnect(ip);
+		if ( httpGet(sd, ip, create_path, 0) == 0)
+			printf("/tmp created successfully.\r\n");
+		else
+			printf("Unable to create /tmp (it probably exists).\r\n");
+		
 		upload(filename, path, ip, 0);  // Upload the file on CPC
 		run(ip, fullpath);              // Execute the file on CPC
 
+		// delete the uploaded file
+		sprintf(delete_url, "config.cgi?rm=%s", fullpath);
+		printf("Delete it in %d seconds %s.\r\n", delay_before_delete, delete_url);
+		sleep(delay_before_delete);
+		if ( httpGet(sd, ip, create_path, 0) == 0)
+			printf("Uploaded file deleted successfully.\r\n");
+		else
+			printf("Unable to delete file.\r\n");
 	}
 	else if ( !strnicmp(argv[1], "-d", 2) && (argc>=4) )	// download
 	{	
