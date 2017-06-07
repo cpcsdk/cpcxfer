@@ -22,6 +22,7 @@ void dispInfo(char *exename)
 	printf("CPC M4 xfer tool v2.0.0 - Duke 2016/2017\r\n");
 	printf("%s -u ipaddr file path opt\t\t- Upload file, opt 0: no header add, 1: add ascii header\r\n", exename);
 	printf("%s -d ipaddr file path opt\t\t- Download file, opt 0: leave header, 1: remove header\r\n", exename);
+	printf("%s -z ipaddr file path \t\t- Remove file\r\n", exename);
 	printf("%s -f ipaddr file slot name\t\t- Upload rom\r\n", exename);
 	printf("%s -x ipaddr path+file\t\t- Execute file on CPC\r\n", exename);
 	printf("%s -y ipaddr local_file\t\t- Upload file on CPC and execute it immediatly (the sd card must contain folder '/tmp')\r\n", exename);
@@ -254,6 +255,40 @@ void uploadRom(char *filename, char *ip, int slot, char *slotname)
 	free(buf);
 }
 
+void delete(char * path, char *ip)
+{
+	// TODO refactor wode with download
+	SOCKET sd;
+	int ret, k, i, j;
+	char fullpath[256];
+	sprintf(fullpath, "config.cgi?rm=%s", path);
+	int opt = 0;
+
+	// remove duplicate /'s
+	
+	k = strlen(fullpath);
+	j = 0;
+	for (i=0; i < (k+1); i++)
+	{
+		if ( (fullpath[i] == '/') && (fullpath[i+1] == '/') )
+			i++;
+		
+		fullpath[j++] = fullpath[i];
+	}
+	ret = httpConnect(ip);
+	
+	sd = ret;
+	if ( ret >= 0 )
+	{	
+		if ( httpGet(sd, ip, fullpath, opt) == 0)
+			printf("Delete succesfully.\r\n");
+		else
+			printf("Delete failed.\r\n");
+	}
+	else
+		printf("Connect failed, wrong ip?\r\n");
+}
+
 void download(char *filename, char *path, char *ip, int opt)
 {
 	SOCKET sd;
@@ -369,11 +404,9 @@ int main(int argc, char *argv[])
 			printf("."); fflush(stdout);
 			sleep(1);
 		}
-			printf("\r\n");
-		if ( httpGet(sd, ip, delete_url, 0) == 0)
-			printf("Uploaded file deleted successfully.\r\n");
-		else
-			printf("Unable to delete file.\r\n");
+		printf("\r\n");
+
+		delete(fullpath, ip);
 	}
 	else if ( !strnicmp(argv[1], "-d", 2) && (argc>=4) )	// download
 	{	
@@ -381,6 +414,11 @@ int main(int argc, char *argv[])
 			opt = atoi(argv[5]);
 
 		download(argv[3], argv[4], argv[2], opt);
+	}
+	else if ( !strnicmp(argv[1], "-z", 2) && (argc>=3) )	// download
+	{	
+
+		delete(argv[3],  argv[2]);
 	}
 	else
 	{	

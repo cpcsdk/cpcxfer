@@ -188,6 +188,7 @@ int httpResponse(SOCKET sd)
 }
 
 // send HTTP GET request and process response
+// XXX error code seem wrong in some cases
 int httpGet(SOCKET sd, char *host, char *url, int skipheader)
 {
 	char httpReq[512];
@@ -197,6 +198,8 @@ int httpGet(SOCKET sd, char *host, char *url, int skipheader)
 	
 	i = sprintf(httpReq, "GET /%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: cpcxfer\r\n\r\n", url, host);
 	send(sd, httpReq, i, 0);
+
+	printf(httpReq);
 
 	while (1)
 	{
