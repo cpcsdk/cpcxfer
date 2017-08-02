@@ -118,7 +118,7 @@ void upload(char *filename, char *path, char *ip, int opt)
 	size = ftell(fd);
 	fseek(fd, 0, SEEK_SET);
 	
-	buf = malloc(size+0x80);
+	buf = new unsigned char[size+0x80];
 	if ( buf == NULL )
 	{
 		printf("Not enough memory!\n");
@@ -219,7 +219,7 @@ void uploadRom(char *filename, char *ip, int slot, char *slotname)
 	size = ftell(fd);
 	fseek(fd, 0, SEEK_SET);
 	
-	buf = malloc(size);
+	buf = new unsigned char[size];
 	if ( buf == NULL )
 	{
 		printf("Not enough memory!\n");

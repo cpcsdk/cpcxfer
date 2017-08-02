@@ -5,7 +5,7 @@
 */
 #include "string.h"
 
-
+#include <ctype.h>
 
 
 
@@ -26,7 +26,7 @@ int strnicmp(char const *a, char const *b, unsigned int lenght)
 
 
 
-int pathPos(char *filename, int len)
+int pathPos(const char * const filename, int len)
 {
 	int i;
 	for (i=len; i > 0; i--)
@@ -100,7 +100,7 @@ void getExtension(char *ext, char *filename)
 
 }
 
-int findString(char *fstr, char *str, int size)
+int findString(const char * const fstr, const char * const str, int size)
 {
 	int i,n,k;
 	

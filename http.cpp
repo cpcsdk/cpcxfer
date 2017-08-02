@@ -10,9 +10,11 @@
 #include "cpc.h"
 #include "http.h"
 
+#include <array>
+
 #define BOUNDARY_ID		"-------------123123123"
 
-int httpConnect(char *host)
+int httpConnect(const std::string host)
 {
 	SOCKET sd;
 	struct sockaddr_in servaddr;
@@ -20,7 +22,7 @@ int httpConnect(char *host)
 	char **pptr;
 	int i;
 	struct hostent *hptr;
-	if ((hptr = gethostbyname(host)) == NULL) 
+	if ((hptr = gethostbyname(host.c_str())) == NULL) 
 	{
 		return -1;
 	}
@@ -61,7 +63,7 @@ int httpClose(SOCKET sd)
 	return -1;
 }
 
-int httpSend(SOCKET sd, char *filename, unsigned char *data, int size, char *formname, char *path, char *host)
+int httpSend(SOCKET sd, const std::string filename, unsigned char *data, int size, const std::string formname, const std::string path, const std::string host)
 {
 	int i, chunkSize, contentLen;
 	char httpHeader[1024];
@@ -69,10 +71,10 @@ int httpSend(SOCKET sd, char *filename, unsigned char *data, int size, char *for
 	char httpEnd[256];
 	
 	contentLen = sprintf(httpEnd,  "\r\n\r\n--%s--", BOUNDARY_ID);
-	contentLen += sprintf(httpContent, "--%s\r\nContent-Disposition: form-data; name=\"upfile\"; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n", BOUNDARY_ID, filename);
+	contentLen += sprintf(httpContent, "--%s\r\nContent-Disposition: form-data; name=\"upfile\"; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n", BOUNDARY_ID, filename.c_str());
 	contentLen +=size;
 	// send HTTP POST header
-	i = sprintf(httpHeader, "POST %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\r\n\r\n", path, host, BOUNDARY_ID,  contentLen);
+	i = sprintf(httpHeader, "POST %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\r\n\r\n", path.c_str(), host.c_str(), BOUNDARY_ID,  contentLen);
 	send(sd, httpHeader, strlen(httpHeader), 0);
 	// send content
 	send(sd, httpContent, strlen(httpContent), 0);
@@ -95,7 +97,7 @@ int httpSend(SOCKET sd, char *filename, unsigned char *data, int size, char *for
 
 	return 0;
 }
-int httpSendRom(SOCKET sd, char *filename, unsigned char *data, int size, int slot, char *path, char *host, char *slotname)
+int httpSendRom(SOCKET sd, const std::string filename, unsigned char *data, int size, int slot, const std::string path, const std::string host, const std::string slotname)
 {
 	int i, chunkSize, contentLen;
 	char httpHeader[1024];
@@ -104,10 +106,10 @@ int httpSendRom(SOCKET sd, char *filename, unsigned char *data, int size, int sl
 	
 	contentLen = sprintf(httpEnd,  "\r\n\r\n--%s--", BOUNDARY_ID);
 	contentLen += sprintf(httpContent, "--%s\r\nContent-Disposition: form-data; name=\"slotnum\"\r\n\r\n%i\r\n--%s\r\nContent-Disposition: form-data; name=\"slotname\"\r\n\r\n%s\r\n--%s\r\nContent-Disposition: form-data; name=\"uploadedfile\"; filename=\"%s\"\r\nContent-Type: application/octet-stream\r\n\r\n", 
-	BOUNDARY_ID, slot, BOUNDARY_ID, slotname, BOUNDARY_ID, filename);
+	BOUNDARY_ID, slot, BOUNDARY_ID, slotname.c_str(), BOUNDARY_ID, filename.c_str());
 	contentLen +=size;
 	// send HTTP POST header
-	i = sprintf(httpHeader, "POST %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\r\n\r\n", path, host, BOUNDARY_ID,  contentLen);
+	i = sprintf(httpHeader, "POST %s HTTP/1.1\r\nHost: %s\r\nConnection: keep-alive\r\nContent-Type: multipart/form-data; boundary=%s\r\nContent-Length: %d\r\r\n\r\n", path.c_str(), host.c_str(), BOUNDARY_ID,  contentLen);
 	send(sd, httpHeader, strlen(httpHeader), 0);
 	// send content
 	send(sd, httpContent, strlen(httpContent), 0);
@@ -130,7 +132,7 @@ int httpSendRom(SOCKET sd, char *filename, unsigned char *data, int size, int sl
 
 	return 0;
 }
-int getStringValue(char *string, char *buf, int size)
+int getStringValue(const char * const string, const char * const buf, int size)
 {	char len[16];
 	int i, j, k;
 	k = strlen(string);
@@ -165,16 +167,14 @@ int getStringValue(char *string, char *buf, int size)
 int httpResponse(SOCKET sd)
 {
 	int n, i, ret;
-	char *response;
+    std::array<char, 4096> response;
 	
-	response = malloc(4096);
-	
-	memset(response, 0, 4096);
+	response.fill(0);
 
 	i = 0;	
-	while (i < 4096) 
+	while (i < response.size()) 
 	{
-		n = recv(sd, &response[i], 4096-i, 0 );
+		n = recv(sd, &response[i], response.size()-i, 0 );
 
 		if ( n<= 0 )
 			break;
@@ -182,32 +182,32 @@ int httpResponse(SOCKET sd)
 		i+=n;
 	}
 	
-	ret = getStringValue("HTTP/1.", response, i);
-	free(response);
+	ret = getStringValue("HTTP/1.", response.data(), i);
 	return ret;
 }
 
 // send HTTP GET request and process response
-int httpGet(SOCKET sd, char *host, char *url, int skipheader)
+int httpGet(SOCKET sd, const std::string host, const std::string url, int skipheader)
 {
-	char httpReq[512];
-	char response[1460];
+    std::array<char, 512> httpReq;
+    std::array<char, 1460> response;
 	int i, n, pos;
-	memset(response, 0, sizeof(response));
+
+    response.fill(0);
 	
-	i = sprintf(httpReq, "GET /%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: cpcxfer\r\n\r\n", url, host);
-	send(sd, httpReq, i, 0);
+	i = sprintf(httpReq.data(), "GET /%s HTTP/1.0\r\nHost: %s\r\nUser-Agent: cpcxfer\r\n\r\n", url.c_str(), host.c_str());
+	send(sd, httpReq.data(), i, 0);
 
 	while (1)
 	{
-		n = recv(sd, &response[0], sizeof(response),0 );
+		n = recv(sd, &response[0], response.size(),0 );
 		
 		if ( n <= 0 )
 			break;
 			
 		// should do more buffer rotation, reloading and checking... but it's not needed as its always in one response - atleast here :P
 			
-		pos = findString("200 OK", response, n);
+		pos = findString("200 OK", response.data(), n);
 		if ( pos > 0 )
 		{	i = findString("Content-type: text/plain", &response[pos], n-pos);
 			if (i > 0 )
@@ -221,22 +221,22 @@ int httpGet(SOCKET sd, char *host, char *url, int skipheader)
 					FILE *f;
 					pos+=i;
 					// get filename from url
-					f = fopen(&url[pathPos(url, strlen(url))], "wb");
+					f = fopen(&url[pathPos(url.c_str(), url.size())], "wb");
 					// rotate buffer if anything left
 					memcpy(&response[0], &response[pos], n-pos);
 					pos = n-pos;
 					
 					while (1)
 					{
-						n = recv(sd, &response[pos], sizeof(response)-pos,0 );
+						n = recv(sd, &response[pos], response.size()-pos,0 );
 						
 						n+=pos;
 						if ( n==0 )
 							break;
 						if ( (headerFound == 0) && skipheader )
 						{	// check if its a valid header at all (not going to remove it, if it doesnt have one!)
-							_cpchead *cpcheader = (_cpchead *)response;
-							if ( checksum16(response, 66) == cpcheader->checksum )
+							_cpchead *cpcheader = (_cpchead *)response.data();
+							if ( checksum16(reinterpret_cast<unsigned char *>(response.data()), 66) == cpcheader->checksum )
 								fwrite(&response[0x80], n-0x80, 1, f);
 							else
 								fwrite(&response[0], n, 1, f);

@@ -26,9 +26,12 @@
 typedef int SOCKET;
 #endif
 
-int httpConnect(char *host);
+
+#include <string>
+
+int httpConnect(const std::string host);
 int httpClose(SOCKET sd);
-int httpSend(SOCKET sockfd, char *filename, unsigned char *data, int size, char *formname, char *path, char *host);
-int httpSendRom(SOCKET sd, char *filename, unsigned char *data, int size, int slot, char *path, char *host, char *slotname);
+int httpSend(SOCKET sockfd, const std::string filename, unsigned char *data, int size, const std::string formname, const std::string path, const std::string host);
+int httpSendRom(SOCKET sd, const std::string filename, unsigned char *data, int size, int slot, const std::string path, const std::string host, const std::string slotname);
 int httpResponse(SOCKET sockfd);
-int httpGet(SOCKET sd, char *host, char *url, int skipheader);
+int httpGet(SOCKET sd, const std::string host, const std::string url, int skipheader);

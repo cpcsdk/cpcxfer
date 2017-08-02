@@ -40,7 +40,7 @@ int decrypt_basp(unsigned char *data, int size)
 }
 
 // simple checksum used by amsdos headers
-unsigned short checksum16(unsigned char *data, int size)
+unsigned short checksum16(const unsigned char * const data, int size)
 {
 	int i;
 	

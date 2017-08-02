@@ -2,7 +2,7 @@ TARGET 		= xfer
 
 OBJS 		= main.o http.o cpc.o parse.o
 INCDIR 		= -I.
-CC 		= gcc
+CXX 		= g++
 CFLAGS 		= -O2  -W
 ifeq ($(OS),Windows_NT)
 LDFLAGS 	= -s -Wl
@@ -18,7 +18,7 @@ all:		$(TARGET)
 
 
 $(TARGET): ${OBJS}
-	${CC} -o "$@" ${OBJS} ${LDFLAGS} ${LIBS}
+	${CXX} -o "$@" ${OBJS} ${LDFLAGS} ${LIBS}
 	$(STRIP) $(TARGET).exe
 	rm -f ${OBJS}
 
